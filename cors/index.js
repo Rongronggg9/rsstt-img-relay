@@ -3,6 +3,11 @@
  *
  * 2019-10-12 - 2021-04-14
  * netnr
+ *
+ * https://github.com/Rongronggg9/rsstt-img-relay
+ *
+ * 2021-09-13
+ * modified by Rongronggg9
  */
 
 addEventListener('fetch', event => {
@@ -37,7 +42,7 @@ async function handleRequest(event) {
             outBody = JSON.stringify({
                 code: 0,
                 usage: 'Host/{URL}',
-                source: 'https://github.com/netnr/workers'
+                source: 'https://github.com/Rongronggg9/rsstt-img-relay'
             });
             outCt = "application/json";
         }
@@ -48,6 +53,7 @@ async function handleRequest(event) {
                 msg: 'The keyword "' + blocker.keys.join(' , ') + '" was blacklisted by the operator of this proxy.'
             });
             outCt = "application/json";
+            outStatus = 415;
         }
         else {
             //补上前缀 http://
@@ -86,9 +92,20 @@ async function handleRequest(event) {
             // 发起 fetch
             let fr = (await fetch(url, fp));
             outCt = fr.headers.get('content-type');
+            // 阻断
+            if (blocker.check_type(outCt)) {
+            outBody = JSON.stringify({
+                code: 415,
+                msg: 'The keyword "' + blocker.types.join(' , ') + '" was whitelisted by the operator of this proxy.'
+            });
+            outCt = "application/json";
+            outStatus = 415;
+            }
+            else {
             outStatus = fr.status;
             outStatusText = fr.statusText;
             outBody = fr.body;
+            }
         }
     } catch (err) {
         outCt = "application/json";
@@ -122,10 +139,16 @@ async function handleRequest(event) {
  */
 const blocker = {
     keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com"],
+    types: ["image", "video"],
     check: function (url) {
         url = url.toLowerCase();
         let len = blocker.keys.filter(x => url.includes(x)).length;
         return len != 0;
+    },
+    check_type: function (content_type) {
+      content_type = content_type.toLowerCase();
+      let len = blocker.types.filter(x => content_type.includes(x)).length;
+      return len == 0;
     }
 }
 
