@@ -1,28 +1,14 @@
-/*
- * https://github.com/netnr/workers
- *
- * 2019-10-12 - 2022-01-17
- * netnr
- *
- * https://github.com/Rongronggg9/rsstt-img-relay
- *
- * 2021-09-13
- * modified by Rongronggg9
- */
-
-addEventListener('fetch', event => {
-    event.passThroughOnException()
-
-    event.respondWith(handleRequest(event))
-})
+export default {
+    async fetch(request, _env) {
+        return await handleRequest(request);
+    }
+}
 
 /**
  * Respond to the request
  * @param {Request} request
  */
-async function handleRequest(event) {
-    const { request } = event;
-
+async function handleRequest(request) {
     //请求头部、返回对象
     let reqHeaders = new Headers(request.headers),
         outBody, outStatus = 200, outStatusText = 'OK', outCt = null, outHeaders = new Headers({
@@ -42,7 +28,7 @@ async function handleRequest(event) {
             outBody = JSON.stringify({
                 code: 0,
                 usage: 'Host/{URL}',
-                source: 'https://github.com/Rongronggg9/rsstt-img-relay'
+                source: 'https://github.com/netnr/workers'
             });
             outCt = "application/json";
         }
@@ -50,10 +36,9 @@ async function handleRequest(event) {
         else if (blocker.check(url)) {
             outBody = JSON.stringify({
                 code: 415,
-                msg: 'The keyword: ' + blocker.keys.join(' , ') + ' was blocklisted by the operator of this proxy.'
+                msg: 'The keyword "' + blocker.keys.join(' , ') + '" was blacklisted by the operator of this proxy.'
             });
             outCt = "application/json";
-            outStatus = 415;
         }
         else {
             url = fixUrl(url);
@@ -89,20 +74,9 @@ async function handleRequest(event) {
             // 发起 fetch
             let fr = (await fetch(url, fp));
             outCt = fr.headers.get('content-type');
-            // 阻断
-            if (blocker.check_type(outCt)) {
-            outBody = JSON.stringify({
-                code: 415,
-                msg: 'The keyword "' + blocker.types.join(' , ') + '" was whitelisted by the operator of this proxy.'
-            });
-            outCt = "application/json";
-            outStatus = 415;
-            }
-            else {
             outStatus = fr.status;
             outStatusText = fr.statusText;
             outBody = fr.body;
-            }
         }
     } catch (err) {
         outCt = "application/json";
@@ -122,9 +96,6 @@ async function handleRequest(event) {
         statusText: outStatusText,
         headers: outHeaders
     })
-
-    //日志接口（申请自己的应用修改密钥后可取消注释）
-    //sematext.add(event, request, response);
 
     return response;
 
@@ -147,86 +118,9 @@ function fixUrl(url) {
  */
 const blocker = {
     keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
-    types: ["image", "video"],
     check: function (url) {
         url = url.toLowerCase();
         let len = blocker.keys.filter(x => url.includes(x)).length;
         return len != 0;
-    },
-    check_type: function (content_type) {
-      content_type = content_type.toLowerCase();
-      let len = blocker.types.filter(x => content_type.includes(x)).length;
-      return len == 0;
     }
 }
-
-/**
- * 日志
- */
-const sematext = {
-
-    // 从 https://sematext.com/ 申请并修改密钥
-    token: "d6945da2-06af-46a3-b394-b862e44ac537",
-
-    /**
-     * 头转object
-     * @param {any} headers
-     */
-    headersToObj: headers => {
-        const obj = {}
-        Array.from(headers).forEach(([key, value]) => {
-            obj[key.replace(/-/g, "_")] = value
-        })
-        return obj
-    },
-
-    /**
-     * 构建发送主体
-     * @param {any} request
-     * @param {any} response
-     */
-    buildBody: (request, response) => {
-        const hua = request.headers.get("user-agent")
-        const hip = request.headers.get("cf-connecting-ip")
-        const hrf = request.headers.get("referer")
-        const url = new URL(request.url)
-
-        const body = {
-            method: request.method,
-            statusCode: response.status,
-            clientIp: hip,
-            referer: hrf,
-            userAgent: hua,
-            host: url.host,
-            path: url.pathname,
-            proxyHost: null,
-        }
-
-        if (body.path.includes(".") && body.path != "/" && !body.path.includes("favicon.ico")) {
-            try {
-                let purl = fixUrl(decodeURIComponent(body.path.substring(1)));
-
-                body.path = purl;
-                body.proxyHost = new URL(purl).host;
-            } catch { }
-        }
-
-        return {
-            method: "POST",
-            body: JSON.stringify(body)
-        }
-    },
-
-    /**
-     * 添加
-     * @param {any} event
-     * @param {any} request
-     * @param {any} response
-     */
-    add: (event, request, response) => {
-        let url = `https://logsene-receiver.sematext.com/${sematext.token}/example/`;
-        const body = sematext.buildBody(request, response);
-
-        event.waitUntil(fetch(url, body))
-    }
-};
