@@ -146,8 +146,9 @@ function fixUrl(url) {
  * 阻断器
  */
 const blocker = {
-    keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
-    types: ["image", "video"],
+    // keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
+    keys: [],
+    types: ["image", "video", "application/octet-stream"],
     check: function (url) {
         url = url.toLowerCase();
         let len = blocker.keys.filter(x => url.includes(x)).length;
