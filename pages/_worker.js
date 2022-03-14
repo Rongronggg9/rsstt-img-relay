@@ -1,3 +1,15 @@
+/*
+ * https://github.com/netnr/workers
+ *
+ * 2019-10-12 - 2022-01-17
+ * netnr
+ *
+ * https://github.com/Rongronggg9/rsstt-img-relay
+ *
+ * 2021-09-13 - 2022-03-14
+ * modified by Rongronggg9
+ */
+
 export default {
     async fetch(request, _env) {
         return await handleRequest(request);
@@ -28,7 +40,7 @@ async function handleRequest(request) {
             outBody = JSON.stringify({
                 code: 0,
                 usage: 'Host/{URL}',
-                source: 'https://github.com/netnr/workers'
+                source: 'https://github.com/Rongronggg9/rsstt-img-relay'
             });
             outCt = "application/json";
         }
@@ -39,8 +51,8 @@ async function handleRequest(request) {
                 msg: 'The keyword "' + blocker.keys.join(' , ') + '" was blacklisted by the operator of this proxy.'
             });
             outCt = "application/json";
-        }
-        else {
+            outStatus = 415;
+        } else {
             url = fixUrl(url);
 
             //构建 fetch 参数
@@ -74,9 +86,19 @@ async function handleRequest(request) {
             // 发起 fetch
             let fr = (await fetch(url, fp));
             outCt = fr.headers.get('content-type');
-            outStatus = fr.status;
-            outStatusText = fr.statusText;
-            outBody = fr.body;
+            // 阻断
+            if (blocker.check_type(outCt)) {
+                outBody = JSON.stringify({
+                    code: 415,
+                    msg: 'The keyword "' + blocker.types.join(' , ') + '" was whitelisted by the operator of this proxy.'
+                });
+                outCt = "application/json";
+                outStatus = 415;
+            } else {
+                outStatus = fr.status;
+                outStatusText = fr.statusText;
+                outBody = fr.body;
+            }
         }
     } catch (err) {
         outCt = "application/json";
@@ -117,10 +139,17 @@ function fixUrl(url) {
  * 阻断器
  */
 const blocker = {
-    keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
+    // keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
+    keys: [],
+    types: ["image", "video", "audio", "application", "font", "model"],
     check: function (url) {
         url = url.toLowerCase();
         let len = blocker.keys.filter(x => url.includes(x)).length;
         return len != 0;
+    },
+    check_type: function (content_type) {
+        content_type = content_type.toLowerCase();
+        let len = blocker.types.filter(x => content_type.includes(x)).length;
+        return len == 0;
     }
 }
