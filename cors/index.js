@@ -69,7 +69,7 @@ async function handleRequest(event) {
             //保留头部其它信息
             let he = reqHeaders.entries();
             for (let h of he) {
-                if (!['content-length', 'content-type', 'host'].includes(h[0])) {
+                if (!['content-length', 'content-type', 'host', 'referer'].includes(h[0])) {
                     fp.headers[h[0]] = h[1];
                 }
             }
@@ -95,7 +95,7 @@ async function handleRequest(event) {
             if (blocker.check_type(outCt)) {
             outBody = JSON.stringify({
                 code: 415,
-                msg: 'The keyword "' + blocker.types.join(' , ') + '" was whitelisted by the operator of this proxy.'
+                msg: 'The keyword "' + blocker.types.join(' , ') + '" was whitelisted by the operator of this proxy, but got "' + outCt + '".'
             });
             outCt = "application/json";
             outStatus = 415;
