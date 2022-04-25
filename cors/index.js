@@ -6,7 +6,7 @@
  *
  * https://github.com/Rongronggg9/rsstt-img-relay
  *
- * 2021-09-13 - 2022-03-14
+ * 2021-09-13 - 2022-04-25
  * modified by Rongronggg9
  */
 
@@ -15,6 +15,20 @@ addEventListener('fetch', event => {
 
     event.respondWith(handleRequest(event))
 })
+
+/**
+ * Configurations
+ */
+const config = {
+    // 从 https://sematext.com/ 申请并修改令牌
+    sematext_token: "d6945da2-06af-46a3-b394-b862e44ac537",
+    // 是否丢弃请求中的 Referer，在目标网站应用防盗链时有用
+    dropReferer: true,
+    // 黑名单，URL 中含有任何一个关键字都会被阻断
+    // blocklist: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
+    blocklist: [],
+    typelist: ["image", "video", "audio", "application", "font", "model"],
+};
 
 /**
  * Respond to the request
@@ -67,10 +81,13 @@ async function handleRequest(event) {
             }
 
             //保留头部其它信息
+            const dropHeaders = ['content-length', 'content-type', 'host'];
+            if (config.dropReferer) dropHeaders.push('referer');
             let he = reqHeaders.entries();
             for (let h of he) {
-                if (!['content-length', 'content-type', 'host', 'referer'].includes(h[0])) {
-                    fp.headers[h[0]] = h[1];
+                const key = h[0], value = h[1];
+                if (!dropHeaders.includes(key)) {
+                    fp.headers[key] = value;
                 }
             }
 
@@ -126,7 +143,7 @@ async function handleRequest(event) {
         headers: outHeaders
     })
 
-    //日志接口（申请自己的应用修改密钥后可取消注释）
+    //日志接口（申请自己的应用修改令牌后可取消注释）
     //sematext.add(event, request, response);
 
     return response;
@@ -149,9 +166,8 @@ function fixUrl(url) {
  * 阻断器
  */
 const blocker = {
-    // keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
-    keys: [],
-    types: ["image", "video", "audio", "application", "font", "model"],
+    keys: config.blocklist,
+    types: config.typelist,
     check: function (url) {
         url = url.toLowerCase();
         let len = blocker.keys.filter(x => url.includes(x)).length;
@@ -168,10 +184,6 @@ const blocker = {
  * 日志
  */
 const sematext = {
-
-    // 从 https://sematext.com/ 申请并修改密钥
-    token: "d6945da2-06af-46a3-b394-b862e44ac537",
-
     /**
      * 头转object
      * @param {any} headers
@@ -228,7 +240,7 @@ const sematext = {
      * @param {any} response
      */
     add: (event, request, response) => {
-        let url = `https://logsene-receiver.sematext.com/${sematext.token}/example/`;
+        let url = `https://logsene-receiver.sematext.com/${config.sematext_token}/example/`;
         const body = sematext.buildBody(request, response);
 
         event.waitUntil(fetch(url, body))
