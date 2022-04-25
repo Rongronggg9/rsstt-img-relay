@@ -8,7 +8,10 @@ export default {
  * Configurations
  */
 const config = {
-    dropReferer: false, // 是否丢弃请求中的 Referer，在目标网站应用防盗链时有用
+    // 是否丢弃请求中的 Referer，在目标网站应用防盗链时有用
+    dropReferer: false,
+    // 黑名单，URL 中含有任何一个关键字都会被阻断
+    blocklist: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
 };
 
 /**
@@ -131,7 +134,7 @@ function fixUrl(url) {
  * 阻断器
  */
 const blocker = {
-    keys: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
+    keys: config.blocklist,
     check: function (url) {
         url = url.toLowerCase();
         let len = blocker.keys.filter(x => url.includes(x)).length;
