@@ -1,12 +1,12 @@
 /*
  * https://github.com/netnr/workers
  *
- * 2019-10-12 - 2022-01-17
+ * 2019-10-12 - 2022-05-05
  * netnr
  *
  * https://github.com/Rongronggg9/rsstt-img-relay
  *
- * 2021-09-13 - 2022-04-25
+ * 2021-09-13 - 2022-05-29
  * modified by Rongronggg9
  */
 
@@ -21,13 +21,13 @@ addEventListener('fetch', event => {
  */
 const config = {
     // 从 https://sematext.com/ 申请并修改令牌
-    sematext_token: "d6945da2-06af-46a3-b394-b862e44ac537",
+    sematextToken: "00000000-0000-0000-0000-000000000000",
     // 是否丢弃请求中的 Referer，在目标网站应用防盗链时有用
     dropReferer: true,
     // 黑名单，URL 中含有任何一个关键字都会被阻断
-    // blocklist: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
-    blocklist: [],
-    typelist: ["image", "video", "audio", "application", "font", "model"],
+    // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
+    blockList: [],
+    typeList: ["image", "video", "audio", "application", "font", "model"],
 };
 
 /**
@@ -63,10 +63,10 @@ async function handleRequest(event) {
             outStatus = invalid ? 400 : 200;
         }
         //阻断
-        else if (blocker.check(url)) {
+        else if (blockUrl(url)) {
             outBody = JSON.stringify({
                 code: 403,
-                msg: 'The keyword: ' + blocker.keys.join(' , ') + ' was blocklisted by the operator of this proxy.'
+                msg: 'The keyword: ' + config.blockList.join(' , ') + ' was block-listed by the operator of this proxy.'
             });
             outCt = "application/json";
             outStatus = 403;
@@ -109,10 +109,10 @@ async function handleRequest(event) {
             let fr = (await fetch(url, fp));
             outCt = fr.headers.get('content-type');
             // 阻断
-            if (blocker.check_type(outCt)) {
+            if (blockType(outCt)) {
             outBody = JSON.stringify({
                 code: 415,
-                msg: 'The keyword "' + blocker.types.join(' , ') + '" was whitelisted by the operator of this proxy, but got "' + outCt + '".'
+                msg: 'The keyword "' + config.typeList.join(' , ') + '" was whitelisted by the operator of this proxy, but got "' + outCt + '".'
             });
             outCt = "application/json";
             outStatus = 415;
@@ -143,8 +143,10 @@ async function handleRequest(event) {
         headers: outHeaders
     })
 
-    //日志接口（申请自己的应用修改令牌后可取消注释）
-    //sematext.add(event, request, response);
+    //日志接口
+    if (config.sematextToken != "00000000-0000-0000-0000-000000000000") {
+        sematext.add(event, request, response);
+    }
 
     return response;
 
@@ -162,39 +164,23 @@ function fixUrl(url) {
     }
 }
 
-/**
- * 阻断器
- */
-const blocker = {
-    keys: config.blocklist,
-    types: config.typelist,
-    check: function (url) {
-        url = url.toLowerCase();
-        let len = blocker.keys.filter(x => url.includes(x)).length;
-        return len != 0;
-    },
-    check_type: function (content_type) {
-      content_type = content_type.toLowerCase();
-      let len = blocker.types.filter(x => content_type.includes(x)).length;
-      return len == 0;
-    }
+// 阻断 url
+function blockUrl(url) {
+    url = url.toLowerCase();
+    let len = config.blockList.filter(x => url.includes(x)).length;
+    return len != 0;
+}
+// 阻断 type
+function blockType(type) {
+    type = type.toLowerCase();
+    let len = config.typeList.filter(x => type.includes(x)).length;
+    return len == 0;
 }
 
 /**
  * 日志
  */
 const sematext = {
-    /**
-     * 头转object
-     * @param {any} headers
-     */
-    headersToObj: headers => {
-        const obj = {}
-        Array.from(headers).forEach(([key, value]) => {
-            obj[key.replace(/-/g, "_")] = value
-        })
-        return obj
-    },
 
     /**
      * 构建发送主体
@@ -240,7 +226,7 @@ const sematext = {
      * @param {any} response
      */
     add: (event, request, response) => {
-        let url = `https://logsene-receiver.sematext.com/${config.sematext_token}/example/`;
+        let url = `https://logsene-receiver.sematext.com/${config.sematextToken}/example/`;
         const body = sematext.buildBody(request, response);
 
         event.waitUntil(fetch(url, body))
