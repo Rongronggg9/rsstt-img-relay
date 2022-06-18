@@ -87,5 +87,5 @@ The total number of invocation requests per day is capped at 100,000. If the dai
 ---
 
 ## Source
-<https://github.com/Rongronggg9/rsstt-img-relay>  
-<https://github.com/netnr/workers> (upstream)
+- <https://github.com/Rongronggg9/rsstt-img-relay>
+- <https://github.com/netnr/workers> (upstream)
