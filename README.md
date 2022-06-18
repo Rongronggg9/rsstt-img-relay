@@ -16,7 +16,7 @@ Convert HTTP to HTTPS
 ```js
 // Copy to the console and run
 var $url = "http://wthrcdn.etouch.cn/weather_mini?citykey=101040100";
-fetch("https://cors.eu.org/" + $url).then(x => x.text()).then(console.log)
+fetch("https://example.com/" + $url).then(x => x.text()).then(console.log)
 ```
 
 ### Deploy
