@@ -9,10 +9,9 @@
 支持HTTPS（解决远程数据接口不支持HTTPS）
 
 ### 使用
-- `https://cors.eu.org/{URL}`
-- 示例
-- <https://cors.eu.org/https://api.github.com>
-- <https://cors.eu.org/http://nginx.org/download/nginx-1.20.2.tar.gz>
+`https://example.com/{URL}`
+- `https://example.com/https://api.github.com`
+- `https://example.com/http://nginx.org/download/nginx-1.20.2.tar.gz`
 
 ```js
 // 拷贝到控制台运行
@@ -55,9 +54,9 @@ fetch("https://cors.eu.org/" + $url).then(x => x.text()).then(console.log)
 
 ## 🧡 pages (Cloudflare Pages Functions)
 ### 使用
-- `https://seep.eu.org/{URL}`
-- 示例
-- <https://seep.eu.org/https://api.github.com>
+`https://example.com/{URL}`
+- `https://example.com/https://api.github.com`
+- `https://example.com/http://nginx.org/download/nginx-1.20.2.tar.gz`
 
 ### 部署
 
