@@ -9,10 +9,9 @@ Support cross-domain request
 Convert HTTP to HTTPS
 
 ### Usage
-- `https://cors.eu.org/{URL}`
-- Demo
-- <https://cors.eu.org/https://api.github.com>
-- <https://cors.eu.org/http://nginx.org/download/nginx-1.20.2.tar.gz>
+`https://example.com/{URL}`
+- `https://example.com/https://api.github.com`
+- `https://example.com/http://nginx.org/download/nginx-1.20.2.tar.gz`
 
 ```js
 // Copy to the console and run
@@ -56,8 +55,9 @@ The amount can't hold up, please use your account to build the service if you us
 ## 🧡 pages (Cloudflare Pages Functions)
 
 ### Usage
-- `https://seep.eu.org/{URL}`
-- Demo: <https://seep.eu.org/https://api.github.com>
+`https://example.com/{URL}`
+- `https://example.com/https://api.github.com`
+- `https://example.com/http://nginx.org/download/nginx-1.20.2.tar.gz`
 
 ### Deploy
 
