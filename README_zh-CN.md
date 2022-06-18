@@ -16,7 +16,7 @@
 ```js
 // 拷贝到控制台运行
 var $url = "http://wthrcdn.etouch.cn/weather_mini?citykey=101040100";
-fetch("https://cors.eu.org/" + $url).then(x => x.text()).then(console.log)
+fetch("https://example.com/" + $url).then(x => x.text()).then(console.log)
 ```
 
 ### 部署
