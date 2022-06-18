@@ -86,5 +86,5 @@ npx wrangler pages dev ./ # 进入 pages 目录运行
 ---
 
 ## Source
-- <https://github.com/Rongronggg9/rsstt-img-relay>  
+- <https://github.com/Rongronggg9/rsstt-img-relay>
 - <https://github.com/netnr/workers> (上游)
