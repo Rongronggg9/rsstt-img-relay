@@ -90,6 +90,7 @@ async function handleRequest(event) {
                     fp.headers[key] = value;
                 }
             }
+            if (config.dropReferer && url.includes('.sinaimg.cn/')) fp.headers['referer'] = 'https://weibo.com/';
 
             // 是否带 body
             if (["POST", "PUT", "PATCH", "DELETE"].indexOf(request.method) >= 0) {
