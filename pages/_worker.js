@@ -6,7 +6,7 @@
  *
  * https://github.com/Rongronggg9/rsstt-img-relay
  *
- * 2021-09-13 - 2022-05-29
+ * 2021-09-13 - 2023-12-10
  * modified by Rongronggg9
  */
 
@@ -117,6 +117,11 @@ async function handleRequest(request) {
                 outStatus = fr.status;
                 outStatusText = fr.statusText;
                 outBody = fr.body;
+                const overrideHeaders = new Set(outHeaders.keys())
+                for (let h of fr.headers.entries()) {
+                    if (!overrideHeaders.has(h[0]))
+                        outHeaders.set(h[0], h[1]);
+                }
             }
         }
     } catch (err) {
