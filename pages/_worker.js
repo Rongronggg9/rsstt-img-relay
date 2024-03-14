@@ -6,33 +6,50 @@
  *
  * https://github.com/Rongronggg9/rsstt-img-relay
  *
- * 2021-09-13 - 2023-12-10
+ * 2021-09-13 - 2024-03-15
  * modified by Rongronggg9
  */
 
-export default {
-    async fetch(request, _env) {
-        return await handleRequest(request);
-    }
-}
+addEventListener('fetch', event => {
+    event.passThroughOnException()
+
+    event.respondWith(handleRequest(event))
+})
 
 /**
  * Configurations
  */
 const config = {
+    // 从 https://sematext.com/ 申请并修改令牌
+    sematextToken: "00000000-0000-0000-0000-000000000000",
     // 是否丢弃请求中的 Referer，在目标网站应用防盗链时有用
     dropReferer: true,
     // 黑名单，URL 中含有任何一个关键字都会被阻断
     // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
     blockList: [],
-    typeList: ["image", "video", "audio", "application", "font", "model"]
+    typeList: ["image", "video", "audio", "application", "font", "model"],
 };
 
 /**
- * Respond to the request
- * @param {Request} request
+ * Set config from environmental variables
+ * @param {object} env
  */
-async function handleRequest(request) {
+function setConfig(env) {
+    Object.keys(config).forEach((k) => {
+        if (env[k])
+            config[k] = typeof config[k] === 'string' ? env[k] : JSON.parse(env[k]);
+    });
+}
+
+/**
+ * Event handler for fetchEvent
+ * @param {Request} request
+ * @param {object} env
+ * @param {object} ctx
+ */
+async function fetchHandler(request, env, ctx) {
+    setConfig(env);
+
     //请求头部、返回对象
     let reqHeaders = new Headers(request.headers),
         outBody, outStatus = 200, outStatusText = 'OK', outCt = null, outHeaders = new Headers({
@@ -62,7 +79,7 @@ async function handleRequest(request) {
         else if (blockUrl(url)) {
             outBody = JSON.stringify({
                 code: 403,
-                msg: 'The keyword "' + config.blockList.join(' , ') + '" was block-listed by the operator of this proxy.'
+                msg: 'The keyword: ' + config.blockList.join(' , ') + ' was block-listed by the operator of this proxy.'
             });
             outCt = "application/json";
             outStatus = 403;
@@ -113,7 +130,8 @@ async function handleRequest(request) {
                 });
                 outCt = "application/json";
                 outStatus = 415;
-            } else {
+            }
+            else {
                 outStatus = fr.status;
                 outStatusText = fr.statusText;
                 outBody = fr.body;
@@ -144,6 +162,11 @@ async function handleRequest(request) {
         headers: outHeaders
     })
 
+    //日志接口
+    if (config.sematextToken != "00000000-0000-0000-0000-000000000000") {
+        sematext.add(ctx, request, response);
+    }
+
     return response;
 
     // return new Response('OK', { status: 200 })
@@ -172,3 +195,63 @@ function blockType(type) {
     let len = config.typeList.filter(x => type.includes(x)).length;
     return len == 0;
 }
+
+/**
+ * 日志
+ */
+const sematext = {
+
+    /**
+     * 构建发送主体
+     * @param {any} request
+     * @param {any} response
+     */
+    buildBody: (request, response) => {
+        const hua = request.headers.get("user-agent")
+        const hip = request.headers.get("cf-connecting-ip")
+        const hrf = request.headers.get("referer")
+        const url = new URL(request.url)
+
+        const body = {
+            method: request.method,
+            statusCode: response.status,
+            clientIp: hip,
+            referer: hrf,
+            userAgent: hua,
+            host: url.host,
+            path: url.pathname,
+            proxyHost: null,
+        }
+
+        if (body.path.includes(".") && body.path != "/" && !body.path.includes("favicon.ico")) {
+            try {
+                let purl = fixUrl(decodeURIComponent(body.path.substring(1)));
+
+                body.path = purl;
+                body.proxyHost = new URL(purl).host;
+            } catch { }
+        }
+
+        return {
+            method: "POST",
+            body: JSON.stringify(body)
+        }
+    },
+
+    /**
+     * 添加
+     * @param {any} event
+     * @param {any} request
+     * @param {any} response
+     */
+    add: (event, request, response) => {
+        let url = `https://logsene-receiver.sematext.com/${config.sematextToken}/example/`;
+        const body = sematext.buildBody(request, response);
+
+        event.waitUntil(fetch(url, body))
+    }
+};
+
+export default {
+    fetch: fetchHandler
+};

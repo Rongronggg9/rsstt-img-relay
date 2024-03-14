@@ -6,7 +6,7 @@
  *
  * https://github.com/Rongronggg9/rsstt-img-relay
  *
- * 2021-09-13 - 2023-12-10
+ * 2021-09-13 - 2024-03-15
  * modified by Rongronggg9
  */
 
@@ -31,11 +31,24 @@ const config = {
 };
 
 /**
- * Respond to the request
- * @param {Request} request
+ * Set config from environmental variables
+ * @param {object} env
  */
-async function handleRequest(event) {
-    const { request } = event;
+function setConfig(env) {
+    Object.keys(config).forEach((k) => {
+        if (env[k])
+            config[k] = typeof config[k] === 'string' ? env[k] : JSON.parse(env[k]);
+    });
+}
+
+/**
+ * Event handler for fetchEvent
+ * @param {Request} request
+ * @param {object} env
+ * @param {object} ctx
+ */
+async function fetchHandler(request, env, ctx) {
+    setConfig(env);
 
     //请求头部、返回对象
     let reqHeaders = new Headers(request.headers),
@@ -111,12 +124,12 @@ async function handleRequest(event) {
             outCt = fr.headers.get('content-type');
             // 阻断
             if (blockType(outCt)) {
-            outBody = JSON.stringify({
-                code: 415,
-                msg: 'The keyword "' + config.typeList.join(' , ') + '" was whitelisted by the operator of this proxy, but got "' + outCt + '".'
-            });
-            outCt = "application/json";
-            outStatus = 415;
+                outBody = JSON.stringify({
+                    code: 415,
+                    msg: 'The keyword "' + config.typeList.join(' , ') + '" was whitelisted by the operator of this proxy, but got "' + outCt + '".'
+                });
+                outCt = "application/json";
+                outStatus = 415;
             }
             else {
                 outStatus = fr.status;
@@ -151,7 +164,7 @@ async function handleRequest(event) {
 
     //日志接口
     if (config.sematextToken != "00000000-0000-0000-0000-000000000000") {
-        sematext.add(event, request, response);
+        sematext.add(ctx, request, response);
     }
 
     return response;
@@ -237,4 +250,8 @@ const sematext = {
 
         event.waitUntil(fetch(url, body))
     }
+};
+
+export default {
+    fetch: fetchHandler
 };
