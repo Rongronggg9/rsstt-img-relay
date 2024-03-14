@@ -28,6 +28,8 @@ const config = {
     // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
     blockList: [],
     typeList: ["image", "video", "audio", "application", "font", "model"],
+    uploadToTelegraphPath: "upload_graph/",
+    telegraphURL: "https://telegra.ph",
 };
 
 /**
@@ -42,6 +44,24 @@ function setConfig(env) {
 }
 
 /**
+ * Upload to telegra.ph
+ * @param {Blob} blob
+ */
+async function uploadToTelegraph(blob) {
+    const formData = new FormData();
+    formData.append('file', blob);
+    return fetch(`${config.telegraphURL}/upload`, {
+        method: 'POST',
+        body: formData
+    })
+        .then(res => res.json())
+        .then(res => {
+            if (res.error) throw new Error(res.error);
+            return `${config.telegraphURL}${res[0].src}`;
+        });
+}
+
+/**
  * Event handler for fetchEvent
  * @param {Request} request
  * @param {object} env
@@ -49,6 +69,7 @@ function setConfig(env) {
  */
 async function fetchHandler(request, env, ctx) {
     setConfig(env);
+    let doUploadToTelegraph = false;
 
     //请求头部、返回对象
     let reqHeaders = new Headers(request.headers),
@@ -62,6 +83,12 @@ async function fetchHandler(request, env, ctx) {
         //取域名第一个斜杠后的所有信息为代理链接
         let url = request.url.substr(8);
         url = decodeURIComponent(url.substr(url.indexOf('/') + 1));
+
+        // upload to telegra.ph
+        if (url.startsWith(config.uploadToTelegraphPath)) {
+            doUploadToTelegraph = true;
+            url = url.substring(config.uploadToTelegraphPath.length);
+        }
 
         //需要忽略的代理
         if (request.method == "OPTIONS" || url.length < 3 || url.indexOf('.') == -1 || url == "favicon.ico" || url == "robots.txt") {
@@ -130,8 +157,14 @@ async function fetchHandler(request, env, ctx) {
                 });
                 outCt = "application/json";
                 outStatus = 415;
-            }
-            else {
+            } else if (doUploadToTelegraph) {
+                const redirectToURL = await uploadToTelegraph(await fr.blob());
+                outCt = 'text/plain';
+                outStatus = 301;
+                outStatusText = 'Moved Permanently';  // mark it permanent to allow caching
+                outBody = '';
+                outHeaders.set('Location', redirectToURL);
+            } else {
                 outStatus = fr.status;
                 outStatusText = fr.statusText;
                 outBody = fr.body;
