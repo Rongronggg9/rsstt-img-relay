@@ -14,6 +14,8 @@
  * Configurations
  */
 const config = {
+    selfURL: "", // to be filled later
+    URLRegExp: "^(\\w+://.+?)/(.*)$",
     // 从 https://sematext.com/ 申请并修改令牌
     sematextToken: "00000000-0000-0000-0000-000000000000",
     // 是否丢弃请求中的 Referer，在目标网站应用防盗链时有用
@@ -85,15 +87,17 @@ async function fetchHandler(request, env, ctx) {
         });
 
     try {
-        //取域名第一个斜杠后的所有信息为代理链接
-        let url = request.url.substr(8);
-        url = decodeURIComponent(url.substr(url.indexOf('/') + 1));
+        const urlMatch = request.url.match(RegExp(config.URLRegExp));
+        config.selfURL = urlMatch[1];
+        let url = urlMatch[2];
 
         // upload to telegra.ph
         if (url.startsWith(config.uploadToTelegraphPath)) {
             doUploadToTelegraph = true;
             url = url.substring(config.uploadToTelegraphPath.length);
         }
+
+        url = decodeURIComponent(url);
 
         //需要忽略的代理
         if (request.method == "OPTIONS" || url.length < 3 || url.indexOf('.') == -1 || url == "favicon.ico" || url == "robots.txt") {
