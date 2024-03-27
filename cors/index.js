@@ -1,20 +1,14 @@
 /*
  * https://github.com/netnr/workers
  *
- * 2019-10-12 - 2022-05-05
+ * 2019-2022
  * netnr
  *
  * https://github.com/Rongronggg9/rsstt-img-relay
  *
- * 2021-09-13 - 2024-03-20
- * modified by Rongronggg9
+ * 2021-2024
+ * Rongronggg9
  */
-
-addEventListener('fetch', event => {
-    event.passThroughOnException()
-
-    event.respondWith(handleRequest(event))
-})
 
 /**
  * Configurations
@@ -71,6 +65,7 @@ async function uploadToTelegraph(blob) {
  * @param {object} ctx
  */
 async function fetchHandler(request, env, ctx) {
+    ctx.passThroughOnException();
     setConfig(env);
     let doUploadToTelegraph = false;
 
