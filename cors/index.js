@@ -40,6 +40,13 @@ function setConfig(env) {
     });
 }
 
+class TelegraphError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'TelegraphError';
+    }
+}
+
 /**
  * Upload to telegra.ph
  * @param {Blob} blob
@@ -53,7 +60,7 @@ async function uploadToTelegraph(blob) {
     })
         .then(res => res.json())
         .then(res => {
-            if (res.error) throw new Error(res.error);
+            if (res.error) throw new TelegraphError(res.error);
             return `${config.telegraphURL}${res[0].src}`;
         });
 }
@@ -180,12 +187,20 @@ async function fetchHandler(request, env, ctx) {
             }
         }
     } catch (err) {
+        let errMsg;
+        if (err instanceof TelegraphError) {
+            errMsg = err.message;
+            outHeaders.set('X-Telegraph-Error', errMsg);
+            outStatus = 400;
+        } else {
+            errMsg = JSON.stringify(err.stack) || err;
+            outStatus = 500;
+        }
         outCt = "application/json";
         outBody = JSON.stringify({
             code: -1,
-            msg: JSON.stringify(err.stack) || err
+            msg: errMsg
         });
-        outStatus = 500;
     }
 
     //设置类型
