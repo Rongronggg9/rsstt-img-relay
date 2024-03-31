@@ -265,7 +265,7 @@ async function fetchHandler(request, env, ctx) {
     }
 
     if (outStatus < 400)
-        outHeaders.set("cache-control", "max-age=604800");
+        outHeaders.set("cache-control", "public, max-age=604800");
 
     let response = new Response(outBody, {
         status: outStatus,
