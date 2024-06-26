@@ -23,8 +23,8 @@ const config = {
     // weibo workarounds
     weiboCDN: [".weibocdn.com", ".sinaimg.cn"],
     weiboReferer: "https://weibo.com/",
-    //增加少数派
-    sspaiCDN: ["cdnfile.sspai.com"],
+    // sspai workarounds
+    sspaiCDN: [".sspai.com"],
     sspaiReferer: "https://sspai.com/",
     // 黑名单，URL 中含有任何一个关键字都会被阻断
     // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
@@ -171,17 +171,17 @@ async function fetchHandler(request, env, ctx) {
                     fp.headers[key] = value;
                 }
             }
-            // apply weibo workarounds
             if (config.dropReferer) {
                 const urlObj = new URL(url);
                 if (config.weiboCDN.some(x => urlObj.host.endsWith(x))) {
+                    // apply weibo workarounds
                     fp.headers['referer'] = config.weiboReferer;
                     weservViaSelf = true;
-                }
-            // 新增处理sspai的逻辑
-                else if (config.sspaiCDN.some(x => urlObj.host.endsWith(x))) {
+                } else if (config.sspaiCDN.some(x => urlObj.host.endsWith(x))) {
+                    // apply sspai workarounds
                     fp.headers['referer'] = config.sspaiReferer;
-    }
+                    weservViaSelf = true;
+                }
             }
 
             // 是否带 body
