@@ -225,8 +225,6 @@ async function fetchHandler(request, env, ctx) {
                         redirectToURL = await uploadToTelegraph(await fr.blob());
                         break;
                     } catch (err) {
-                        if (err instanceof TelegraphError && err.message.includes('dimensions invalid'))
-                            throw err;
                         console.log(fr.url, err);
                         errs.push(err);
                     }
