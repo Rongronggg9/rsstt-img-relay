@@ -32,15 +32,6 @@ const config = {
     typeList: ["image", "video", "audio", "application", "font", "model"],
     uploadToTelegraphPath: "upload_graph/",
     telegraphURL: "https://telegra.ph",
-    weservURL: "https://wsrv.nl",
-    // see also https://github.com/Rongronggg9/RSS-to-Telegram-Bot/blob/dev/src/web/media.py
-    resizeViaWeservParams: {
-        w: 2560,
-        h: 2560,
-        output: "jpg",
-        q: 89,
-        we: 1
-    },
 };
 
 /**
@@ -80,25 +71,6 @@ async function uploadToTelegraph(blob) {
 }
 
 /**
- * Fetch resized image via weserv.nl
- * @param {string} url
- * @param {object} params
- * @returns {Promise<Response>}
- */
-async function fetchResizedImage(url, params = {}) {
-    const searchParams = new URLSearchParams({
-        url,
-        ...config.resizeViaWeservParams,
-        ...params
-    });
-    const resizedURL = `${config.weservURL}/?${searchParams.toString()}`;
-    const response = await fetch(resizedURL);
-    if (response.status >= 300)
-        throw new Error((await response.json())?.message);
-    return response;
-}
-
-/**
  * Event handler for fetchEvent
  * @param {Request} request
  * @param {object} env
@@ -108,7 +80,6 @@ async function fetchHandler(request, env, ctx) {
     ctx.passThroughOnException();
     setConfig(env);
     let doUploadToTelegraph = false;
-    let weservViaSelf = false;
 
     //请求头部、返回对象
     let reqHeaders = new Headers(request.headers),
@@ -176,11 +147,9 @@ async function fetchHandler(request, env, ctx) {
                 if (config.weiboCDN.some(x => urlObj.host.endsWith(x))) {
                     // apply weibo workarounds
                     fp.headers['referer'] = config.weiboReferer;
-                    weservViaSelf = true;
                 } else if (config.sspaiCDN.some(x => urlObj.host.endsWith(x))) {
                     // apply sspai workarounds
                     fp.headers['referer'] = config.sspaiReferer;
-                    weservViaSelf = true;
                 }
             }
 
@@ -210,27 +179,7 @@ async function fetchHandler(request, env, ctx) {
                 outCt = "application/json";
                 outStatus = 415;
             } else if (doUploadToTelegraph) {
-                let redirectToURL;
-                const errs = [];
-                const pre = [
-                    async () => fetchResizedImage(`${config.selfURL}/${url}`),
-                ];
-                if (!weservViaSelf)
-                    pre.unshift(async () => fetchResizedImage(url));
-                if ((fr.headers.get("content-length") || 0) <= 5 ** 1024 ** 1024) // 5MiB
-                    pre.unshift(async () => fr);
-                for (const f of pre) {
-                    try {
-                        fr = await f();
-                        redirectToURL = await uploadToTelegraph(await fr.blob());
-                        break;
-                    } catch (err) {
-                        console.log(fr.url, err);
-                        errs.push(err);
-                    }
-                }
-                if (!redirectToURL)
-                    throw new TelegraphError(JSON.stringify(errs.map((err) => err.message)));
+                const redirectToURL = await uploadToTelegraph(await fr.blob());
                 outCt = 'text/plain';
                 outStatus = 301;
                 outStatusText = 'Moved Permanently';  // mark it permanent to allow caching
