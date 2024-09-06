@@ -30,8 +30,6 @@ const config = {
     // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
     blockList: [],
     typeList: ["image", "video", "audio", "application", "font", "model"],
-    uploadToTelegraphPath: "upload_graph/",
-    telegraphURL: "https://telegra.ph",
 };
 
 /**
@@ -46,24 +44,6 @@ function setConfig(env) {
 }
 
 /**
- * Upload to telegra.ph
- * @param {Blob} blob
- */
-async function uploadToTelegraph(blob) {
-    const formData = new FormData();
-    formData.append('file', blob);
-    return fetch(`${config.telegraphURL}/upload`, {
-        method: 'POST',
-        body: formData
-    })
-        .then(res => res.json())
-        .then(res => {
-            if (res.error) throw new Error(res.error);
-            return `${config.telegraphURL}${res[0].src}`;
-        });
-}
-
-/**
  * Event handler for fetchEvent
  * @param {Request} request
  * @param {object} env
@@ -72,7 +52,6 @@ async function uploadToTelegraph(blob) {
 async function fetchHandler(request, env, ctx) {
     ctx.passThroughOnException();
     setConfig(env);
-    let doUploadToTelegraph = false;
 
     //请求头部、返回对象
     let reqHeaders = new Headers(request.headers),
@@ -86,12 +65,6 @@ async function fetchHandler(request, env, ctx) {
         const urlMatch = request.url.match(RegExp(config.URLRegExp));
         config.selfURL = urlMatch[1];
         let url = urlMatch[2];
-
-        // upload to telegra.ph
-        if (url.startsWith(config.uploadToTelegraphPath)) {
-            doUploadToTelegraph = true;
-            url = url.substring(config.uploadToTelegraphPath.length);
-        }
 
         url = decodeURIComponent(url);
 
@@ -171,14 +144,8 @@ async function fetchHandler(request, env, ctx) {
                 });
                 outCt = "application/json";
                 outStatus = 415;
-            } else if (doUploadToTelegraph) {
-                const redirectToURL = await uploadToTelegraph(await fr.blob());
-                outCt = 'text/plain';
-                outStatus = 301;
-                outStatusText = 'Moved Permanently';  // mark it permanent to allow caching
-                outBody = '';
-                outHeaders.set('Location', redirectToURL);
-            } else {
+            }
+            else {
                 outStatus = fr.status;
                 outStatusText = fr.statusText;
                 outBody = fr.body;
