@@ -75,6 +75,9 @@ async function fetchHandler(request, env, ctx) {
 
         url = decodeURIComponent(url);
 
+        // 👇 新增下面这一行：将 HTML 实体 &amp; 还原为 &
+        url = url.replace(/&amp;/ig, '&');
+        
         //需要忽略的代理
         if (request.method == "OPTIONS" || url.length < 3 || url.indexOf('.') == -1 || url == "favicon.ico" || url == "robots.txt") {
             //输出提示
