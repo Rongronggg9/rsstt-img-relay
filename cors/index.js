@@ -33,6 +33,10 @@ const config = {
     coolapkCDN: [".coolapk.com"],
     coolapkReferer: "https://www.coolapk.com/",
     coolapkUserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    // shopline workarounds (新增：解决 Shopline CDN WAF 及防盗链拦截)
+    shoplineCDN: [".shoplineapp.com"],
+    shoplineReferer: "https://shoplineapp.com/",
+    shoplineUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     // 黑名单，URL 中含有任何一个关键字都会被阻断
     // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
     blockList: [],
@@ -75,9 +79,6 @@ async function fetchHandler(request, env, ctx) {
 
         url = decodeURIComponent(url);
 
-        // 👇 新增下面这一行：将 HTML 实体 &amp; 还原为 &
-        url = url.replace(/&amp;/ig, '&');
-        
         //需要忽略的代理
         if (request.method == "OPTIONS" || url.length < 3 || url.indexOf('.') == -1 || url == "favicon.ico" || url == "robots.txt") {
             //输出提示
@@ -118,23 +119,31 @@ async function fetchHandler(request, env, ctx) {
                     fp.headers[key] = value;
                 }
             }
+            
             const urlObj = new URL(url);
+            
+            // CDN 检测
             const isCoolapk = config.coolapkCDN.some(x => urlObj.host.endsWith(x));
+            const isShopline = config.shoplineCDN.some(x => urlObj.host.endsWith(x)); // 新增：检测 Shopline
+
+            // 应用 User-Agent 伪装
             if (isCoolapk) {
-                // Coolapk rejects bare worker requests unless they look like a browser.
                 fp.headers['user-agent'] = config.coolapkUserAgent;
+            } else if (isShopline) {
+                fp.headers['user-agent'] = config.shoplineUserAgent; // 新增：应用普通的浏览器 UA
             }
+
+            // 应用 Referer 伪装
             if (config.dropReferer) {
                 if (isCoolapk) {
                     fp.headers['referer'] = config.coolapkReferer;
+                } else if (isShopline) {
+                    fp.headers['referer'] = config.shoplineReferer; // 新增：应用 Shopline Referer
                 } else if (config.weiboCDN.some(x => urlObj.host.endsWith(x))) {
-                    // apply weibo workarounds
                     fp.headers['referer'] = config.weiboReferer;
                 } else if (config.sspaiCDN.some(x => urlObj.host.endsWith(x))) {
-                    // apply sspai workarounds
                     fp.headers['referer'] = config.sspaiReferer;
                 } else if (config.doubanCDN.some(x => urlObj.host.endsWith(x))) {
-                    // apply douban workarounds
                     fp.headers['referer'] = config.doubanReferer;
                 }
             }
