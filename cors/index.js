@@ -29,6 +29,10 @@ const config = {
     // douban workarounds
     doubanCDN: [".doubanio.com"],
     doubanReferer: "https://movie.douban.com/",
+    // coolapk workarounds
+    coolapkCDN: [".coolapk.com"],
+    coolapkReferer: "https://www.coolapk.com/",
+    coolapkUserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
     // 黑名单，URL 中含有任何一个关键字都会被阻断
     // blockList: [".m3u8", ".ts", ".acc", ".m4s", "photocall.tv", "googlevideo.com", "liveradio.ie"],
     blockList: [],
@@ -111,9 +115,16 @@ async function fetchHandler(request, env, ctx) {
                     fp.headers[key] = value;
                 }
             }
+            const urlObj = new URL(url);
+            const isCoolapk = config.coolapkCDN.some(x => urlObj.host.endsWith(x));
+            if (isCoolapk) {
+                // Coolapk rejects bare worker requests unless they look like a browser.
+                fp.headers['user-agent'] = config.coolapkUserAgent;
+            }
             if (config.dropReferer) {
-                const urlObj = new URL(url);
-                if (config.weiboCDN.some(x => urlObj.host.endsWith(x))) {
+                if (isCoolapk) {
+                    fp.headers['referer'] = config.coolapkReferer;
+                } else if (config.weiboCDN.some(x => urlObj.host.endsWith(x))) {
                     // apply weibo workarounds
                     fp.headers['referer'] = config.weiboReferer;
                 } else if (config.sspaiCDN.some(x => urlObj.host.endsWith(x))) {
